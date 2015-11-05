@@ -33,7 +33,7 @@ public class GraphQLToGremlinCompiler {
         GraphQLParser parser = new GraphQLParser(tokens);
         ParseTree tree = parser.document();
 
-        GraphQLListener listener = new GraphQLListener(traversal);
+        GraphQLCompilerListener listener = new GraphQLCompilerListener(traversal);
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
 

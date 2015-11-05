@@ -26,6 +26,7 @@ antlr4.extraArgs = ['-package', 'io.jschneider.graphql.gremlin.grammar']
 dependencies {
     compile 'org.apache.tinkerpop:gremlin-core:3.0.2-incubating'
     compile 'org.projectlombok:lombok:1.16.6'
+    compile 'com.google.guava:guava:18.0'
 
     testCompile 'org.apache.tinkerpop:tinkergraph-gremlin:3.0.2-incubating'
     testCompile 'org.apache.tinkerpop:gremlin-groovy:3.0.2-incubating'

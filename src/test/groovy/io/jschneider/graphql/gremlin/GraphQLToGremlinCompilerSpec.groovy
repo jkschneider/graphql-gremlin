@@ -1,10 +1,20 @@
 package io.jschneider.graphql.gremlin
-import org.apache.tinkerpop.gremlin.process.traversal.Traverser
+
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
 import spock.lang.Specification
 
 class GraphQLToGremlinCompilerSpec extends Specification {
+    def setupSpec() {
+        GraphTraversal.metaClass.entitySelect << { Map<String, String> fieldMappings, Map<String, String> entityMappings = [:] ->
+            def entity = new GraphQLEntity('', '')
+            entity.fields.addAll(fieldMappings.keySet())
+            entity.childEntities.addAll(entityMappings.entrySet().collect { new GraphQLEntity(it.key, it.value) })
+            delegate.asAdmin().addStep(new GraphQLEntitySelectStep<>(delegate.asAdmin(), entity))
+        }
+    }
+
     def 'match a vertex with a property'() {
         when:
         def g = TinkerFactory.createModern()
@@ -20,12 +30,12 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
                 .match(
-                    __.as('__document').barrier(1).has('name', 'marko').as('__person'),
-                    __.as('__person').values('name').as('name'),
-                    __.as('__person').values('age').as('age')
+                    __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                    __.as('__person0').values('name').as('name'),
+                    __.as('__person0').values('age').as('age')
                 )
-                .select('name', 'age')
-                .as('person')
+                .entitySelect(name: 'name', age: 'age')
+                .as('person0')
 
         then:
         expected == actual
@@ -49,59 +59,21 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
                 .match(
-                    __.as('__document').barrier(1).has('name', 'marko').as('__person'),
-                    __.as('__person').values('name').as('name'),
-                    __.as('__person').match(
-                            __.as('__person').out('created').has('name', 'lop').as('__created'),
-                            __.as('__created').values('lang').as('lang')
+                    __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                    __.as('__person0').values('name').as('name'),
+                    __.as('__person0')
+                        .match(
+                            __.as('__person0').out('created').has('name', 'lop').as('__created0'),
+                            __.as('__created0').values('lang').as('lang')
                         )
-                        .select('lang')
-                        .as('created')
+                        .entitySelect([lang: 'lang'])
+                        .as('created0')
                 )
-                .select('name', 'created')
-                .as('person')
+                .entitySelect([name: 'name'], ['created': 'created0'])
+                .as('person0')
 
         then:
         expected == actual
         actual.next() == [name: 'marko', created: [lang: 'java']]
-    }
-
-    def 'complex match'() {
-        when:
-        def g = TinkerFactory.createModern()
-
-        def result = g.traversal().V()
-            .match(
-                __.as('__document').barrier(1).has('person', 'name', 'marko').as('person'),
-                __.as('person').match(
-                    __.as('person').values('name').as('name'),
-                    __.as('person').match(
-                            __.as('person')
-                                    .outE('created').has('weight', 0.4).inV()
-                                    .as('__created'),
-                            __.as('__created').values('name').as('name2'),
-                            __.as('__created').values('lang').as('lang')
-                        )
-                        .select('name2', 'lang')
-                        .map { Traverser<Map> t ->
-                            def m = t.get()
-                            m['name'] = m['name2']
-                            m.remove('name2')
-                            m
-                        }
-                        .as('created')
-                )
-            )
-            .select('name', 'age', 'created')
-            .as('document')
-            .next()
-
-        println(result)
-
-        then:
-        result.name == 'marko'
-        result.age == 29
-        result.created.name == 'lop'
-        result.created.lang == 'java'
     }
 }
