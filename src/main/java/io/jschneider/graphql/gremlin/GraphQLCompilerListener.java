@@ -42,6 +42,12 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     }
 
     @Override
+    public void enterOperationType(@NotNull GraphQLParser.OperationTypeContext ctx) {
+        if(ctx.getText().equals("mutation"))
+            throw new UnsupportedOperationException("GraphQL mutation is not supported");
+    }
+
+    @Override
     public void enterFieldRelation(@NotNull GraphQLParser.FieldRelationContext ctx) {
         String relationName = ctx.fieldName().getText();
         String relationAlias = relationName + asNames.count(relationName);

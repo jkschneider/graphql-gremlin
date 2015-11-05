@@ -139,4 +139,27 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         then:
         actual.next() == [person: [nameAlias: 'marko', age: 29]]
     }
+
+    def 'query with no fragments'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+            query noFragments {
+              person(name: "marko") {
+                name,
+                age
+              }
+            }
+        """)
+
+        then:
+        actual.next() == [person: [name: 'marko', age: 29]]
+    }
+
+    def 'mutation is not supported'() {
+        when:
+        GraphQLToGremlinCompiler.convertToGremlinTraversal(g, 'mutation { }')
+
+        then:
+        thrown(UnsupportedOperationException)
+    }
 }
