@@ -33,7 +33,8 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
         for (final GraphQLField field : entity.getFields()) {
             final E end = this.getNullableScopeValue(null, field.getFieldAlias(), traverser);
             if (null != end)
-                bindings.put(field.getFieldName(), TraversalUtil.apply(end, traversalRing.next()));
+                bindings.put(field.getQueryAlias() == null ? field.getFieldName() : field.getQueryAlias(),
+                        TraversalUtil.apply(end, traversalRing.next()));
             else {
                 traversalRing.reset();
                 return null;
@@ -66,7 +67,8 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
         List<String> selectKeys = new ArrayList<>();
 
         selectKeys.addAll(this.entity.getFields().stream()
-                .map(field -> field.getFieldAlias() + " as " + field.getFieldName())
+                .map(field -> field.getFieldAlias() + " as " + field.getFieldName() +
+                    (field.getQueryAlias() != null ? " a.k.a. " + field.getQueryAlias() : ""))
                 .collect(Collectors.toList()));
 
         selectKeys.addAll(entity.getChildEntities().stream()

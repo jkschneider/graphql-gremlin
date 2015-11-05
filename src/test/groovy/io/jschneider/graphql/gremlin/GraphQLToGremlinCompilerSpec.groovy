@@ -2,23 +2,28 @@ package io.jschneider.graphql.gremlin
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__
+import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
 import spock.lang.Specification
 
 class GraphQLToGremlinCompilerSpec extends Specification {
+    static Graph g
+
     def setupSpec() {
-        GraphTraversal.metaClass.entitySelect << { Map<String, String> fieldMappings, Map<String, String> entityMappings = [:] ->
+        GraphTraversal.metaClass.entitySelect << { Map<String, String> fieldMappings,
+                                                   Map<String, String> entityMappings = [:],
+                                                   Map<String, String> queryAliases = [:] ->
             def entity = new GraphQLEntity('', '')
-            entity.fields.addAll(fieldMappings.entrySet().collect { new GraphQLField(it.key, it.value) })
+            entity.fields.addAll(fieldMappings.entrySet().collect { new GraphQLField(it.key, it.value, queryAliases[it.key]) })
             entity.childEntities.addAll(entityMappings.entrySet().collect { new GraphQLEntity(it.key, it.value) })
             delegate.asAdmin().addStep(new GraphQLEntitySelectStep<>(delegate.asAdmin(), entity))
         }
+
+        g = TinkerFactory.createModern()
     }
 
-    def 'match a vertex with a property'() {
+    def 'match a vertex based on a property'() {
         when:
-        def g = TinkerFactory.createModern()
-
         def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
             {
               person(name: "marko") {
@@ -46,10 +51,8 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         actual.next() == [person: [name: 'marko', age: 29]]
     }
 
-    def 'match a vertex with a single relation'() {
+    def 'match a relationship based on an edge property'() {
         when:
-        def g = TinkerFactory.createModern()
-
         def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
             {
               person(name: "marko") {
@@ -87,8 +90,6 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'nested properties with the same name'() {
         when:
-        def g = TinkerFactory.createModern()
-
         def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
             {
               person(name: "marko") {
@@ -122,5 +123,20 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         then:
         expected == actual
         actual.next() == [person: [name: 'marko', created: [name: 'lop']]]
+    }
+
+    def 'aliased fields'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+            {
+              person(name: "marko") {
+                nameAlias: name,
+                age
+              }
+            }
+        """)
+
+        then:
+        actual.next() == [person: [nameAlias: 'marko', age: 29]]
     }
 }

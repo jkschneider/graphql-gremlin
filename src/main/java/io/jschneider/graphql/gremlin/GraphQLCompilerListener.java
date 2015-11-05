@@ -6,6 +6,7 @@ import com.google.common.collect.TreeMultiset;
 import io.jschneider.graphql.gremlin.grammar.GraphQLBaseListener;
 import io.jschneider.graphql.gremlin.grammar.GraphQLParser;
 import org.antlr.v4.runtime.misc.NotNull;
+import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -88,10 +89,21 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
 
     @Override
     public void enterFieldValue(@NotNull GraphQLParser.FieldValueContext ctx) {
-        String fieldName = ctx.fieldName().getText();
+        GraphQLParser.FieldNameContext fieldNameContext = ctx.fieldName();
+
+        String fieldName = fieldNameContext.getText();
+        String queryAlias = null;
+
+        if(fieldNameContext.alias() != null) {
+            List<TerminalNode> aliasParts = fieldNameContext.alias().NAME();
+            fieldName = aliasParts.get(1).getText();
+            queryAlias = aliasParts.get(0).getText();
+        }
+
         String fieldAlias = fieldName + asNames.count(fieldName);
         asNames.add(fieldName);
-        entityStack.peek().getFields().add(new GraphQLField(fieldName, fieldAlias));
+
+        entityStack.peek().getFields().add(new GraphQLField(fieldName, fieldAlias, queryAlias));
     }
 
     @Override
