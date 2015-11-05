@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, E>> implements Scoping, TraversalParent, PathProcessor {
 
+    @SuppressWarnings("unchecked")
     private TraversalRing<Object, E> traversalRing = new TraversalRing<>();
     private GraphQLEntity entity;
 
@@ -29,10 +30,10 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
     protected Map<String, E> map(final Traverser.Admin<S> traverser) {
         final Map<String, E> bindings = new LinkedHashMap<>();
 
-        for (final String selectKey : entity.getFields()) {
-            final E end = this.getNullableScopeValue(null, selectKey, traverser);
+        for (final GraphQLField field : entity.getFields()) {
+            final E end = this.getNullableScopeValue(null, field.getFieldAlias(), traverser);
             if (null != end)
-                bindings.put(selectKey, TraversalUtil.apply(end, traversalRing.next()));
+                bindings.put(field.getFieldName(), TraversalUtil.apply(end, traversalRing.next()));
             else {
                 traversalRing.reset();
                 return null;
@@ -62,7 +63,12 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
 
     @Override
     public String toString() {
-        List<String> selectKeys = new ArrayList<>(entity.getFields());
+        List<String> selectKeys = new ArrayList<>();
+
+        selectKeys.addAll(this.entity.getFields().stream()
+                .map(field -> field.getFieldAlias() + " as " + field.getFieldName())
+                .collect(Collectors.toList()));
+
         selectKeys.addAll(entity.getChildEntities().stream()
                 .map(child -> child.getRelationAlias() + " as " + child.getRelationName())
                 .collect(Collectors.toList()));
@@ -105,10 +111,16 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
 
     @Override
     public Set<String> getScopeKeys() {
-        Set<String> scopeKeys = new TreeSet<>(this.entity.getFields());
+        Set<String> scopeKeys = new TreeSet<>();
+
+        scopeKeys.addAll(this.entity.getFields().stream()
+                .map(GraphQLField::getFieldName)
+                .collect(Collectors.toList()));
+
         scopeKeys.addAll(this.entity.getChildEntities().stream()
                 .map(GraphQLEntity::getRelationName)
                 .collect(Collectors.toList()));
+
         return scopeKeys;
     }
 }

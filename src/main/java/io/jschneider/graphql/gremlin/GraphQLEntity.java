@@ -21,7 +21,7 @@ public class GraphQLEntity {
         return "__" + relationAlias;
     }
 
-    List<String> fields = new ArrayList<>();
+    List<GraphQLField> fields = new ArrayList<>();
     List<GraphQLEntity> childEntities = new ArrayList<>();
 
     /**

@@ -19,7 +19,11 @@ import java.util.stream.Collectors;
 public class GraphQLCompilerListener extends GraphQLBaseListener {
     private GraphTraversal<Vertex, ?> traversal;
 
-    Multiset<String> relationNames = TreeMultiset.create();
+    /**
+     * .as(R) names must have unique R across all fields and relations throughout the traversal
+     */
+    Multiset<String> asNames = TreeMultiset.create();
+
     GraphQLEntity documentEntity = new GraphQLEntity("document", "document");
     Stack<GraphQLEntity> entityStack = new Stack<>();
 
@@ -39,9 +43,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     @Override
     public void enterFieldRelation(@NotNull GraphQLParser.FieldRelationContext ctx) {
         String relationName = ctx.fieldName().getText();
-        Integer relationCount = relationNames.count(relationName);
-//        String relationAlias = relationName + (relationCount == 0 ? "" : relationCount);
-        String relationAlias = relationName + relationCount;
+        String relationAlias = relationName + asNames.count(relationName);
 
         GraphQLEntity entity = new GraphQLEntity(relationName, relationAlias);
         GraphQLEntity parentEntity = entityStack.peek();
@@ -60,7 +62,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         entity.setWhereClause(whereClause);
 
         entityStack.push(entity);
-        relationNames.add(relationName);
+        asNames.add(relationName);
     }
 
     private Object extractValue(GraphQLParser.ValueContext valueContext) {
@@ -86,7 +88,10 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
 
     @Override
     public void enterFieldValue(@NotNull GraphQLParser.FieldValueContext ctx) {
-        entityStack.peek().getFields().add(ctx.fieldName().getText());
+        String fieldName = ctx.fieldName().getText();
+        String fieldAlias = fieldName + asNames.count(fieldName);
+        asNames.add(fieldName);
+        entityStack.peek().getFields().add(new GraphQLField(fieldName, fieldAlias));
     }
 
     @Override
@@ -98,23 +103,20 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     }
 
     private GraphTraversal<?, ?> recurseBuildMatch(GraphQLEntity entity, GraphTraversal<?, ?> at) {
-        List<String> fields = entity.getFields();
-        List<String> selects = new ArrayList<>(fields);
+        List<GraphQLField> fields = entity.getFields();
 
         List<Traversal<?, ?>> matchClauses = new ArrayList<>(fields.size() + entity.getChildEntities().size() + 1);
 
         if(entity.getWhereClause() != null)
             matchClauses.add(entity.getWhereClause());
 
-        // FIXME deconflict field names -- we probably need a global field alias construct
         matchClauses.addAll(fields.stream()
-            .map(field -> __.as(entity.getPrivateRelationAlias()).values(field).as(field))
+            .map(field -> __.as(entity.getPrivateRelationAlias()).values(field.getFieldName()).as(field.getFieldAlias()))
             .collect(Collectors.toList()));
 
-        for (GraphQLEntity childEntity : entity.getChildEntities()) {
-            matchClauses.add(recurseBuildMatch(childEntity, __.as(entity.getPrivateRelationAlias())));
-            selects.add(childEntity.getRelationName());
-        }
+        matchClauses.addAll(entity.getChildEntities().stream()
+            .map(childEntity -> recurseBuildMatch(childEntity, __.as(entity.getPrivateRelationAlias())))
+            .collect(Collectors.toList()));
 
         GraphTraversal<?, ?> match = at.match(matchClauses.toArray(new Traversal<?, ?>[matchClauses.size()]));
         match.asAdmin().addStep(new GraphQLEntitySelectStep<>(match.asAdmin(), entity));
