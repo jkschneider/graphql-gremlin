@@ -98,8 +98,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     public void exitDocument(@NotNull GraphQLParser.DocumentContext ctx) {
         // there should be precisely one entity left on the stack, the document entity
         Preconditions.checkState(entityStack.size() == 1);
-        GraphQLEntity rootEntity = documentEntity.getChildEntities().get(0);
-        recurseBuildMatch(rootEntity, traversal);
+        recurseBuildMatch(documentEntity, traversal);
     }
 
     private GraphTraversal<?, ?> recurseBuildMatch(GraphQLEntity entity, GraphTraversal<?, ?> at) {
@@ -121,6 +120,9 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         GraphTraversal<?, ?> match = at.match(matchClauses.toArray(new Traversal<?, ?>[matchClauses.size()]));
         match.asAdmin().addStep(new GraphQLEntitySelectStep<>(match.asAdmin(), entity));
 
-        return match.as(entity.getRelationAlias());
+        if(!entity.getRelationAlias().equals(entity.getRelationName()))
+            match = match.as(entity.getRelationAlias());
+
+        return match;
     }
 }

@@ -30,16 +30,20 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document').barrier(1).has('name', 'marko').as('__person0'),
-                __.as('__person0').values('name').as('name0'),
-                __.as('__person0').values('age').as('age0')
+                __.as('document')
+                    .match(
+                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('__person0').values('name').as('name0'),
+                        __.as('__person0').values('age').as('age0')
+                    )
+                    .entitySelect(name: 'name0', age: 'age0')
+                    .as('person0')
             )
-            .entitySelect(name: 'name0', age: 'age0')
-            .as('person0')
+            .entitySelect([:], [person: 'person0'])
 
         then:
         expected == actual
-        actual.next() == [name: 'marko', age: 29]
+        actual.next() == [person: [name: 'marko', age: 29]]
     }
 
     def 'match a vertex with a single relation'() {
@@ -59,22 +63,26 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document').barrier(1).has('name', 'marko').as('__person0'),
-                __.as('__person0').values('name').as('name0'),
-                __.as('__person0')
+                __.as('document')
                     .match(
-                        __.as('__person0').out('created').has('name', 'lop').as('__created0'),
-                        __.as('__created0').values('lang').as('lang0')
+                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('__person0').values('name').as('name0'),
+                        __.as('__person0')
+                            .match(
+                                __.as('__person0').out('created').has('name', 'lop').as('__created0'),
+                                __.as('__created0').values('lang').as('lang0')
+                            )
+                            .entitySelect([lang: 'lang0'])
+                            .as('created0')
                     )
-                    .entitySelect([lang: 'lang0'])
-                    .as('created0')
+                    .entitySelect([name: 'name0'], [created: 'created0'])
+                    .as('person0')
             )
-            .entitySelect([name: 'name0'], ['created': 'created0'])
-            .as('person0')
+            .entitySelect([:], [person: 'person0'])
 
         then:
         expected == actual
-        actual.next() == [name: 'marko', created: [lang: 'java']]
+        actual.next() == [person: [name: 'marko', created: [lang: 'java']]]
     }
 
     def 'nested properties with the same name'() {
@@ -94,21 +102,25 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document').barrier(1).has('name', 'marko').as('__person0'),
-                __.as('__person0').values('name').as('name0'),
-                __.as('__person0')
+                __.as('document')
                     .match(
-                        __.as('__person0').out('created').has('lang', 'java').as('__created0'),
-                        __.as('__created0').values('name').as('name1')
+                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('__person0').values('name').as('name0'),
+                        __.as('__person0')
+                            .match(
+                                __.as('__person0').out('created').has('lang', 'java').as('__created0'),
+                                __.as('__created0').values('name').as('name1')
+                            )
+                            .entitySelect([name: 'name1'])
+                            .as('created0')
                     )
-                    .entitySelect([name: 'name1'])
-                    .as('created0')
+                    .entitySelect([name: 'name0'], ['created': 'created0'])
+                    .as('person0')
             )
-            .entitySelect([name: 'name0'], ['created': 'created0'])
-            .as('person0')
+            .entitySelect([:], [person: 'person0'])
 
         then:
         expected == actual
-        actual.next() == [name: 'marko', created: [name: 'lop']]
+        actual.next() == [person: [name: 'marko', created: [name: 'lop']]]
     }
 }

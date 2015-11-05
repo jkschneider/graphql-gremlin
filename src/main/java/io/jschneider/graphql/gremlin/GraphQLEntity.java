@@ -18,6 +18,8 @@ public class GraphQLEntity {
     @NonNull String relationAlias;
 
     String getPrivateRelationAlias() {
+        if(relationName.equals(relationAlias))
+            return relationName;
         return "__" + relationAlias;
     }
 
