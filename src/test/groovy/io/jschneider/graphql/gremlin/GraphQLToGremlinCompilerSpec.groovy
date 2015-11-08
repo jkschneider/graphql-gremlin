@@ -13,9 +13,9 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         GraphTraversal.metaClass.entitySelect << { Map<String, String> fieldMappings,
                                                    Map<String, String> entityMappings = [:],
                                                    Map<String, String> queryAliases = [:] ->
-            def entity = new GraphQLEntity('', '')
+            def entity = new GraphQLRelationEntity('', '')
             entity.fields.addAll(fieldMappings.entrySet().collect { new GraphQLField(it.key, it.value, queryAliases[it.key]) })
-            entity.childEntities.addAll(entityMappings.entrySet().collect { new GraphQLEntity(it.key, it.value) })
+            entity.childEntities.addAll(entityMappings.entrySet().collect { new GraphQLRelationEntity(it.key, it.value) })
             delegate.asAdmin().addStep(new GraphQLEntitySelectStep<>(delegate.asAdmin(), entity))
         }
 
@@ -35,9 +35,9 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document')
+                __.as('query')
                     .match(
-                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('query').barrier(1).has('name', 'marko').as('__person0'),
                         __.as('__person0').values('name').as('name0'),
                         __.as('__person0').values('age').as('age0')
                     )
@@ -66,9 +66,9 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document')
+                __.as('query')
                     .match(
-                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('query').barrier(1).has('name', 'marko').as('__person0'),
                         __.as('__person0').values('name').as('name0'),
                         __.as('__person0')
                             .match(
@@ -103,9 +103,9 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         def expected = g.traversal().V()
             .match(
-                __.as('document')
+                __.as('query')
                     .match(
-                        __.as('document').barrier(1).has('name', 'marko').as('__person0'),
+                        __.as('query').barrier(1).has('name', 'marko').as('__person0'),
                         __.as('__person0').values('name').as('name0'),
                         __.as('__person0')
                             .match(
@@ -161,5 +161,47 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
+    }
+
+    def 'query with fragments'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+            query withFragments {
+              person(name: "marko") {
+                ...personFields
+              }
+            }
+
+            fragment personFields on Person {
+              name,
+              age
+            }
+        """)
+
+        then:
+        actual.next() == [person: [name: 'marko', age: 29]]
+    }
+
+    def 'query with nested fragments'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+            query withFragments {
+              person(name: "marko") {
+                ...personFields
+              }
+            }
+
+            fragment personFields on Person {
+              ...nestedPersonFields
+            }
+
+            fragment nestedPersonFields on Person {
+              name,
+              age
+            }
+        """)
+
+        then:
+        actual.next() == [person: [name: 'marko', age: 29]]
     }
 }

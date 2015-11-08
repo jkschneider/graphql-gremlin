@@ -12,9 +12,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GraphQLCompilerListener extends GraphQLBaseListener {
@@ -25,8 +23,9 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
      */
     Multiset<String> asNames = TreeMultiset.create();
 
-    GraphQLEntity documentEntity = new GraphQLEntity("document", "document");
+    GraphQLRelationEntity queryEntity = new GraphQLRelationEntity("query", "query");
     Stack<GraphQLEntity> entityStack = new Stack<>();
+    Map<String, GraphQLFragmentEntity> fragmentsByName = new HashMap<>();
 
     public GraphQLCompilerListener(GraphTraversal<Vertex, ?> traversal) {
         this.traversal = traversal;
@@ -38,7 +37,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
 
     @Override
     public void enterDocument(@NotNull GraphQLParser.DocumentContext ctx) {
-        entityStack.push(documentEntity);
+        entityStack.push(queryEntity);
     }
 
     @Override
@@ -48,25 +47,38 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     }
 
     @Override
+    public void enterFragmentDefinition(@NotNull GraphQLParser.FragmentDefinitionContext ctx) {
+        GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(ctx.fragmentName().getText(),
+                GraphQLFragmentEntity::new);
+        entityStack.push(fragment);
+    }
+
+    @Override
+    public void exitFragmentDefinition(@NotNull GraphQLParser.FragmentDefinitionContext ctx) {
+        entityStack.pop();
+    }
+
+    @Override
+    public void enterFragmentSpread(@NotNull GraphQLParser.FragmentSpreadContext ctx) {
+        GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(ctx.fragmentName().getText(),
+                GraphQLFragmentEntity::new);
+
+        GraphQLEntity parentEntity = entityStack.peek();
+        parentEntity.getChildEntities().add(fragment);
+    }
+
+    @Override
     public void enterFieldRelation(@NotNull GraphQLParser.FieldRelationContext ctx) {
         String relationName = ctx.fieldName().getText();
         String relationAlias = relationName + asNames.count(relationName);
 
-        GraphQLEntity entity = new GraphQLEntity(relationName, relationAlias);
+        GraphQLRelationEntity entity = new GraphQLRelationEntity(relationName, relationAlias);
         GraphQLEntity parentEntity = entityStack.peek();
         parentEntity.getChildEntities().add(entity);
 
-        GraphTraversal<?, ?> whereClause;
-        if(parentEntity == documentEntity)
-            whereClause = __.as(parentEntity.getRelationName()).barrier(1);
-        else
-            whereClause = __.as(parentEntity.getPrivateRelationAlias()).out(entity.getRelationName());
-
         for (GraphQLParser.ArgumentContext arg : ctx.arguments().argument()) {
-            whereClause = whereClause.has(arg.NAME().getText(), extractValue(arg.valueOrVariable().value()));
+            entity.getWhereClauses().put(arg.NAME().getText(), extractValue(arg.valueOrVariable().value()));
         }
-        whereClause.as(entity.getPrivateRelationAlias());
-        entity.setWhereClause(whereClause);
 
         entityStack.push(entity);
         asNames.add(relationName);
@@ -116,23 +128,22 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     public void exitDocument(@NotNull GraphQLParser.DocumentContext ctx) {
         // there should be precisely one entity left on the stack, the document entity
         Preconditions.checkState(entityStack.size() == 1);
-        recurseBuildMatch(documentEntity, traversal);
+        recurseBuildMatch(queryEntity, null, traversal);
     }
 
-    private GraphTraversal<?, ?> recurseBuildMatch(GraphQLEntity entity, GraphTraversal<?, ?> at) {
-        List<GraphQLField> fields = entity.getFields();
-
+    private GraphTraversal<?, ?> recurseBuildMatch(GraphQLRelationEntity entity, GraphQLRelationEntity parent, GraphTraversal<?, ?> at) {
+        List<GraphQLField> fields = entity.flattenedFields();
         List<Traversal<?, ?>> matchClauses = new ArrayList<>(fields.size() + entity.getChildEntities().size() + 1);
 
-        if(entity.getWhereClause() != null)
-            matchClauses.add(entity.getWhereClause());
+        if(!entity.getWhereClauses().isEmpty())
+            matchClauses.add(buildWhereClause(entity, parent));
 
         matchClauses.addAll(fields.stream()
             .map(field -> __.as(entity.getPrivateRelationAlias()).values(field.getFieldName()).as(field.getFieldAlias()))
             .collect(Collectors.toList()));
 
-        matchClauses.addAll(entity.getChildEntities().stream()
-            .map(childEntity -> recurseBuildMatch(childEntity, __.as(entity.getPrivateRelationAlias())))
+        matchClauses.addAll(entity.flattenedChildEntities().stream()
+            .map(c -> recurseBuildMatch((GraphQLRelationEntity) c, entity, __.as(entity.getPrivateRelationAlias())))
             .collect(Collectors.toList()));
 
         GraphTraversal<?, ?> match = at.match(matchClauses.toArray(new Traversal<?, ?>[matchClauses.size()]));
@@ -142,5 +153,21 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
             match = match.as(entity.getRelationAlias());
 
         return match;
+    }
+
+    private GraphTraversal<?, ?> buildWhereClause(GraphQLRelationEntity entity, GraphQLRelationEntity parent) {
+        GraphTraversal<?, ?> whereClause;
+        if(parent == queryEntity) {
+            whereClause = __.as(parent.getRelationName()).barrier(1);
+        }
+        else {
+            whereClause = __.as(parent.getPrivateRelationAlias()).out(entity.getRelationName());
+        }
+
+        for (Map.Entry<String, Object> whereHas : entity.getWhereClauses().entrySet()) {
+            whereClause = whereClause.has(whereHas.getKey(), whereHas.getValue());
+        }
+
+        return whereClause.as(entity.getPrivateRelationAlias());
     }
 }

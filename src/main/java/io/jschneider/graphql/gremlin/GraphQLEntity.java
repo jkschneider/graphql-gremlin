@@ -1,33 +1,41 @@
 package io.jschneider.graphql.gremlin;
 
-import lombok.Data;
-import lombok.NonNull;
-import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-@Data
-public class GraphQLEntity {
-    @NonNull String relationName;
+public interface GraphQLEntity {
+    List<GraphQLField> getFields();
+    List<GraphQLEntity> getChildEntities();
 
     /**
-     * Because every as(R) step in gremlin needs a unique R and the same relation name can occur in multiple nested
-     * levels of the entity hierarchy
+     * @return all fields, including those defined directly and in nested fragments
      */
-    @NonNull String relationAlias;
+    default List<GraphQLField> flattenedFields() {
+        List<GraphQLField> fieldsIncludingFragments = new ArrayList<>(getFields());
 
-    String getPrivateRelationAlias() {
-        if(relationName.equals(relationAlias))
-            return relationName;
-        return "__" + relationAlias;
+        fieldsIncludingFragments.addAll(getChildEntities().stream()
+                .filter(c -> c instanceof GraphQLFragmentEntity)
+                .flatMap(c -> c.flattenedFields().stream())
+                .collect(Collectors.toList()));
+
+        return fieldsIncludingFragments;
     }
 
-    List<GraphQLField> fields = new ArrayList<>();
-    List<GraphQLEntity> childEntities = new ArrayList<>();
-
     /**
-     * May be null, as in the case of the root document, which is a faux entity anyway
+     * @return all children, including those defined directly and in nested fragments
      */
-    Traversal<?, ?> whereClause;
+    default List<GraphQLRelationEntity> flattenedChildEntities() {
+        List<GraphQLRelationEntity> children = getChildEntities().stream()
+                .filter(c -> c instanceof GraphQLRelationEntity)
+                .map(c -> (GraphQLRelationEntity) c)
+                .collect(Collectors.toList());
+
+        children.addAll(getChildEntities().stream()
+                .filter(c -> c instanceof GraphQLFragmentEntity)
+                .flatMap(c -> c.flattenedChildEntities().stream())
+                .collect(Collectors.toList()));
+
+        return children;
+    }
 }

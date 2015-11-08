@@ -21,17 +21,17 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
     private TraversalRing<Object, E> traversalRing = new TraversalRing<>();
     private GraphQLEntity entity;
 
-    public GraphQLEntitySelectStep(final Traversal.Admin traversal, GraphQLEntity entity) {
+    public GraphQLEntitySelectStep(Traversal.Admin traversal, GraphQLEntity entity) {
         super(traversal);
         this.entity = entity;
     }
 
     @Override
-    protected Map<String, E> map(final Traverser.Admin<S> traverser) {
+    protected Map<String, E> map(Traverser.Admin<S> traverser) {
         final Map<String, E> bindings = new LinkedHashMap<>();
 
-        for (final GraphQLField field : entity.getFields()) {
-            final E end = this.getNullableScopeValue(null, field.getFieldAlias(), traverser);
+        for (GraphQLField field : entity.flattenedFields()) {
+            E end = this.getNullableScopeValue(null, field.getFieldAlias(), traverser);
             if (null != end)
                 bindings.put(field.getQueryAlias() == null ? field.getFieldName() : field.getQueryAlias(),
                         TraversalUtil.apply(end, traversalRing.next()));
@@ -41,8 +41,8 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
             }
         }
 
-        for (final GraphQLEntity child : entity.getChildEntities()) {
-            final E end = this.getNullableScopeValue(null, child.getRelationAlias(), traverser);
+        for (GraphQLRelationEntity child : entity.flattenedChildEntities()) {
+            E end = this.getNullableScopeValue(null, child.getRelationAlias(), traverser);
             if (null != end) {
                 bindings.put(child.getRelationName(), TraversalUtil.apply(end, traversalRing.next()));
             }
@@ -66,12 +66,12 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
     public String toString() {
         List<String> selectKeys = new ArrayList<>();
 
-        selectKeys.addAll(this.entity.getFields().stream()
+        selectKeys.addAll(this.entity.flattenedFields().stream()
                 .map(field -> field.getFieldAlias() + " as " + field.getFieldName() +
                     (field.getQueryAlias() != null ? " a.k.a. " + field.getQueryAlias() : ""))
                 .collect(Collectors.toList()));
 
-        selectKeys.addAll(entity.getChildEntities().stream()
+        selectKeys.addAll(entity.flattenedChildEntities().stream()
                 .map(child -> child.getRelationAlias() + " as " + child.getRelationName())
                 .collect(Collectors.toList()));
 
@@ -80,7 +80,7 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
 
     @Override
     public GraphQLEntitySelectStep<S, E> clone() {
-        final GraphQLEntitySelectStep<S, E> clone = (GraphQLEntitySelectStep<S, E>) super.clone();
+        GraphQLEntitySelectStep<S, E> clone = (GraphQLEntitySelectStep<S, E>) super.clone();
         clone.traversalRing = this.traversalRing.clone();
         clone.getLocalChildren().forEach(clone::integrateChild);
         return clone;
@@ -119,8 +119,8 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
                 .map(GraphQLField::getFieldName)
                 .collect(Collectors.toList()));
 
-        scopeKeys.addAll(this.entity.getChildEntities().stream()
-                .map(GraphQLEntity::getRelationName)
+        scopeKeys.addAll(this.entity.flattenedChildEntities().stream()
+                .map(GraphQLRelationEntity::getRelationName)
                 .collect(Collectors.toList()));
 
         return scopeKeys;
