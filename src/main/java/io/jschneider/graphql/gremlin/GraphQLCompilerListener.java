@@ -50,6 +50,9 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     public void enterFragmentDefinition(@NotNull GraphQLParser.FragmentDefinitionContext ctx) {
         GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(ctx.fragmentName().getText(),
                 GraphQLFragmentEntity::new);
+        GraphQLParser.TypeNameContext typeName = ctx.typeCondition().typeName();
+        if(typeName != null)
+            fragment.setType(typeName.getText());
         entityStack.push(fragment);
     }
 
@@ -62,6 +65,16 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     public void enterFragmentSpread(@NotNull GraphQLParser.FragmentSpreadContext ctx) {
         GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(ctx.fragmentName().getText(),
                 GraphQLFragmentEntity::new);
+
+        GraphQLEntity parentEntity = entityStack.peek();
+        parentEntity.getChildEntities().add(fragment);
+    }
+
+    @Override
+    public void enterInlineFragment(@NotNull GraphQLParser.InlineFragmentContext ctx) {
+        String name = "inlineFragment" + asNames.count("inlineFragment");
+        asNames.add("inlineFragment");
+        GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(name, GraphQLFragmentEntity::new);
 
         GraphQLEntity parentEntity = entityStack.peek();
         parentEntity.getChildEntities().add(fragment);

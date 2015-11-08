@@ -204,4 +204,19 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         then:
         actual.next() == [person: [name: 'marko', age: 29]]
     }
+
+    def 'query with inline fragments'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """{
+          person(name: "marko") {
+            ... on Person {
+              name,
+              age
+            }
+          }
+        }""")
+
+        then:
+        actual.next() == [person: [name: 'marko', age: 29]]
+    }
 }
