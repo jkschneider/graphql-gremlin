@@ -171,16 +171,23 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     private GraphTraversal<?, ?> buildWhereClause(GraphQLRelationEntity entity, GraphQLRelationEntity parent) {
         GraphTraversal<?, ?> whereClause;
         if(parent == queryEntity) {
-            whereClause = __.as(parent.getRelationName()).barrier(1);
+            whereClause = buildHasChain(entity, __.as(parent.getRelationName()).barrier(1));
         }
         else {
-            whereClause = __.as(parent.getPrivateRelationAlias()).out(entity.getRelationName());
-        }
-
-        for (Map.Entry<String, Object> whereHas : entity.getWhereClauses().entrySet()) {
-            whereClause = whereClause.has(whereHas.getKey(), whereHas.getValue());
+            //noinspection unchecked
+            whereClause = __.as(parent.getPrivateRelationAlias()).union(
+                buildHasChain(entity, __.outE(entity.getRelationName())).inV(),
+                buildHasChain(entity, __.out(entity.getRelationName()))
+            ).dedup();
         }
 
         return whereClause.as(entity.getPrivateRelationAlias());
+    }
+
+    private <T> GraphTraversal<?, T> buildHasChain(GraphQLRelationEntity entity, GraphTraversal<?, T> whereClause) {
+        for (Map.Entry<String, Object> whereHas : entity.getWhereClauses().entrySet()) {
+            whereClause = whereClause.has(whereHas.getKey(), whereHas.getValue());
+        }
+        return whereClause;
     }
 }

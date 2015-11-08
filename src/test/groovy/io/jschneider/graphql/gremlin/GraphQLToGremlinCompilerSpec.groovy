@@ -51,7 +51,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         actual.next() == [person: [name: 'marko', age: 29]]
     }
 
-    def 'match a relationship based on an edge property'() {
+    def 'match a relationship based on an in-vertex property'() {
         when:
         def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
             {
@@ -72,7 +72,12 @@ class GraphQLToGremlinCompilerSpec extends Specification {
                         __.as('__person0').values('name').as('name0'),
                         __.as('__person0')
                             .match(
-                                __.as('__person0').out('created').has('name', 'lop').as('__created0'),
+                                __.as('__person0').union(
+                                        __.outE('created').has('name', 'lop').inV(),
+                                        __.out('created').has('name', 'lop')
+                                    )
+                                    .dedup()
+                                    .as('__created0'),
                                 __.as('__created0').values('lang').as('lang0')
                             )
                             .entitySelect([lang: 'lang0'])
@@ -109,7 +114,12 @@ class GraphQLToGremlinCompilerSpec extends Specification {
                         __.as('__person0').values('name').as('name0'),
                         __.as('__person0')
                             .match(
-                                __.as('__person0').out('created').has('lang', 'java').as('__created0'),
+                                __.as('__person0').union(
+                                        __.outE('created').has('lang', 'java').inV(),
+                                        __.out('created').has('lang', 'java')
+                                    )
+                                    .dedup()
+                                    .as('__created0'),
                                 __.as('__created0').values('name').as('name1')
                             )
                             .entitySelect([name: 'name1'])
@@ -123,6 +133,23 @@ class GraphQLToGremlinCompilerSpec extends Specification {
         then:
         expected == actual
         actual.next() == [person: [name: 'marko', created: [name: 'lop']]]
+    }
+
+    def 'match a relationship based on an edge property'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+            {
+              person(name: "marko") {
+                name,
+                created(weight: 0.4) {
+                  lang
+                }
+              }
+            }
+        """)
+
+        then:
+        actual.next() == [person: [name: 'marko', created: [lang: 'java']]]
     }
 
     def 'aliased fields'() {
