@@ -1,5 +1,5 @@
 package io.jschneider.graphql.gremlin.entity
-import io.jschneider.graphql.gremlin.GraphQLField
+import io.jschneider.graphql.gremlin.field.GraphQLField
 import spock.lang.Specification
 
 class GraphQLEntitySpec extends Specification {

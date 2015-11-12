@@ -1,6 +1,7 @@
 package io.jschneider.graphql.gremlin.entity;
 
-import io.jschneider.graphql.gremlin.GraphQLField;
+import io.jschneider.graphql.gremlin.field.GraphQLField;
+import io.jschneider.graphql.gremlin.directive.GraphQLDirective;
 import io.jschneider.graphql.gremlin.variable.GraphQLValueOrVariable;
 import lombok.Data;
 import lombok.NonNull;
@@ -31,4 +32,6 @@ public class GraphQLRelationEntity implements GraphQLEntity {
      * May be empty, as in the case of the root document, which is a faux entity anyway
      */
     List<GraphQLValueOrVariable> whereClauses = new ArrayList<>();
+
+    List<GraphQLDirective> directives = new ArrayList<GraphQLDirective>();
 }

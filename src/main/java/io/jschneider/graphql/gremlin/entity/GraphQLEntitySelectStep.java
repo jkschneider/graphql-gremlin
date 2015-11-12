@@ -1,6 +1,6 @@
 package io.jschneider.graphql.gremlin.entity;
 
-import io.jschneider.graphql.gremlin.GraphQLField;
+import io.jschneider.graphql.gremlin.field.GraphQLField;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.PathProcessor;
@@ -32,6 +32,9 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
         final Map<String, E> bindings = new LinkedHashMap<>();
 
         for (GraphQLField field : entity.flattenedFields()) {
+            if(field.isSkipped())
+                continue;
+
             E end = this.getNullableScopeValue(null, field.getFieldAlias(), traverser);
             if (null != end)
                 bindings.put(field.getQueryAlias() == null ? field.getFieldName() : field.getQueryAlias(),
@@ -43,6 +46,9 @@ public final class GraphQLEntitySelectStep<S, E> extends MapStep<S, Map<String, 
         }
 
         for (GraphQLRelationEntity child : entity.flattenedChildEntities()) {
+            if(child.isSkipped())
+                continue;
+
             E end = this.getNullableScopeValue(null, child.getRelationAlias(), traverser);
             if (null != end) {
                 bindings.put(child.getRelationName(), TraversalUtil.apply(end, traversalRing.next()));

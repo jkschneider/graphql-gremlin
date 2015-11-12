@@ -1,6 +1,7 @@
-package io.jschneider.graphql.gremlin;
+package io.jschneider.graphql.gremlin.field;
 
 import io.jschneider.graphql.gremlin.directive.GraphQLDirective;
+import io.jschneider.graphql.gremlin.directive.GraphQLDirectiveAware;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Data
-public class GraphQLField {
+public class GraphQLField implements GraphQLDirectiveAware {
     final @NonNull String fieldName;
     final @NonNull String fieldAlias;
 

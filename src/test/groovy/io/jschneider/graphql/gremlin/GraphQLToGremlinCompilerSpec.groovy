@@ -2,6 +2,7 @@ package io.jschneider.graphql.gremlin
 
 import io.jschneider.graphql.gremlin.entity.GraphQLEntitySelectStep
 import io.jschneider.graphql.gremlin.entity.GraphQLRelationEntity
+import io.jschneider.graphql.gremlin.field.GraphQLField
 import io.jschneider.graphql.gremlin.variable.MapVariableResolver
 import io.jschneider.graphql.gremlin.variable.VariableResolver
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
@@ -276,5 +277,118 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         then:
         actual.next() == [person: [age: 29]]
+    }
+
+    def 'query with skip directive on a field'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$skippable: Boolean = $shouldSkip) {
+              person(name: "marko") {
+                  age @skip(if: \$skippable)
+              }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [:]]
+
+        where:
+        shouldSkip  | result
+        true        | [person: [:]]
+        false       | [person: [age: 29]]
+    }
+
+    def 'query with skip directive on an entity'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$skippable: Boolean = $shouldSkip) {
+              person(name: "marko") {
+                created(name: "lop") @skip(if: \$skippable) {
+                  lang
+                }
+              }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [:]]
+
+        where:
+        shouldSkip  | result
+        true        | [person: [:]]
+        false       | [person: [created: [lang: 'java']]]
+    }
+
+    def 'query with skip directive on inline fragment'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$skippable: Boolean = $shouldSkip) {
+              person(name: "marko") {
+                ... on Language @skip(if: \$skippable) {
+                  created(name: "lop") {
+                    lang
+                  }
+                }
+              }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [:]]
+
+        where:
+        shouldSkip  | result
+        true        | [person: [:]]
+        false       | [person: [created: [lang: 'java']]]
+    }
+
+    def 'query with skip directive on fragment spread'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$skippable: Boolean = $shouldSkip) {
+              person(name: "marko") {
+                ...preferredLanguage @skip(if: \$skippable)
+              }
+          }
+
+          fragment preferredLanguage on Language {
+            created(name: "lop") {
+              lang
+            }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [:]]
+
+        where:
+        shouldSkip  | result
+        true        | [person: [:]]
+        false       | [person: [created: [lang: 'java']]]
+    }
+
+    def 'query with skip directive on fragment definition'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$skippable: Boolean = $shouldSkip) {
+              person(name: "marko") {
+                ...preferredLanguage
+              }
+          }
+
+          fragment preferredLanguage on Language @skip(if: \$skippable) {
+            created(name: "lop") {
+              lang
+            }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [:]]
+
+        where:
+        shouldSkip  | result
+        true        | [person: [:]]
+        false       | [person: [created: [lang: 'java']]]
     }
 }

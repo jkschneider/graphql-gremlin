@@ -3,11 +3,13 @@ package io.jschneider.graphql.gremlin;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.TreeMultiset;
+import io.jschneider.graphql.gremlin.directive.GraphQLDirectiveAware;
 import io.jschneider.graphql.gremlin.directive.SkipDirective;
 import io.jschneider.graphql.gremlin.entity.GraphQLEntity;
 import io.jschneider.graphql.gremlin.entity.GraphQLEntitySelectStep;
 import io.jschneider.graphql.gremlin.entity.GraphQLFragmentEntity;
 import io.jschneider.graphql.gremlin.entity.GraphQLRelationEntity;
+import io.jschneider.graphql.gremlin.field.GraphQLField;
 import io.jschneider.graphql.gremlin.grammar.GraphQLBaseListener;
 import io.jschneider.graphql.gremlin.grammar.GraphQLParser;
 import io.jschneider.graphql.gremlin.variable.GraphQLValue;
@@ -64,6 +66,9 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         GraphQLParser.TypeNameContext typeName = ctx.typeCondition().typeName();
         if(typeName != null)
             fragment.setType(typeName.getText());
+
+        addDirectives(fragment, ctx.directives());
+
         entityStack.push(fragment);
     }
 
@@ -76,6 +81,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     public void enterFragmentSpread(@NotNull GraphQLParser.FragmentSpreadContext ctx) {
         GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(ctx.fragmentName().getText(),
                 GraphQLFragmentEntity::new);
+        addDirectives(fragment, ctx.directives());
 
         GraphQLEntity parentEntity = entityStack.peek();
         parentEntity.getChildEntities().add(fragment);
@@ -86,9 +92,17 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         String name = "inlineFragment" + asNames.count("inlineFragment");
         asNames.add("inlineFragment");
         GraphQLFragmentEntity fragment = fragmentsByName.computeIfAbsent(name, GraphQLFragmentEntity::new);
+        addDirectives(fragment, ctx.directives());
 
         GraphQLEntity parentEntity = entityStack.peek();
         parentEntity.getChildEntities().add(fragment);
+
+        entityStack.push(fragment);
+    }
+
+    @Override
+    public void exitInlineFragment(@NotNull GraphQLParser.InlineFragmentContext ctx) {
+        entityStack.pop();
     }
 
     @Override
@@ -102,6 +116,8 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
 
         for (GraphQLParser.ArgumentContext arg : ctx.arguments().argument())
             entity.getWhereClauses().add(valueOrVariable(arg));
+
+        addDirectives(entity, ctx.directives());
 
         entityStack.push(entity);
         asNames.add(relationName);
@@ -161,15 +177,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         asNames.add(fieldName);
 
         GraphQLField field = new GraphQLField(fieldName, fieldAlias, queryAlias);
-
-        if(ctx.directives() != null) {
-            for (GraphQLParser.DirectiveContext directiveContext : ctx.directives().directive()) {
-                String directiveName = directiveContext.NAME().getText();
-                if("skip".equals(directiveName)) {
-                    field.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument())));
-                }
-            }
-        }
+        addDirectives(field, ctx.directives());
 
         entityStack.peek().getFields().add(field);
     }
@@ -189,6 +197,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
             matchClauses.add(buildWhereClause(entity, parent));
 
         matchClauses.addAll(fields.stream()
+            .filter(f -> !f.isSkipped())
             .map(field -> __.as(entity.getPrivateRelationAlias()).values(field.getFieldName()).as(field.getFieldAlias()))
             .collect(Collectors.toList()));
 
@@ -226,5 +235,16 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
             whereClause = whereClause.has(valueOrVariable.getKey(), valueOrVariable.getValue());
         }
         return whereClause;
+    }
+
+    private void addDirectives(GraphQLDirectiveAware directiveAware, GraphQLParser.DirectivesContext ctx) {
+        if(ctx != null) {
+            for (GraphQLParser.DirectiveContext directiveContext : ctx.directive()) {
+                String directiveName = directiveContext.NAME().getText();
+                if("skip".equals(directiveName)) {
+                    directiveAware.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument())));
+                }
+            }
+        }
     }
 }

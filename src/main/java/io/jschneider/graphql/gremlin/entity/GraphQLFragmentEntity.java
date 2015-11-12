@@ -1,6 +1,7 @@
 package io.jschneider.graphql.gremlin.entity;
 
-import io.jschneider.graphql.gremlin.GraphQLField;
+import io.jschneider.graphql.gremlin.field.GraphQLField;
+import io.jschneider.graphql.gremlin.directive.GraphQLDirective;
 import lombok.Data;
 import lombok.NonNull;
 
@@ -13,6 +14,7 @@ public class GraphQLFragmentEntity implements GraphQLEntity, Cloneable {
     String type;
     List<GraphQLField> fields = new ArrayList<>();
     List<GraphQLEntity> childEntities = new ArrayList<>();
+    List<GraphQLDirective> directives = new ArrayList<>();
 
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
