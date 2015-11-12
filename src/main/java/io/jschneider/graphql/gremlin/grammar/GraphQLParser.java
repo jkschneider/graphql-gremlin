@@ -1,16 +1,13 @@
 // Generated from /Users/joschneider/Projects/github/jkschneider/graphql-gremlin/src/main/antlr4/GraphQL.g4 by ANTLR 4.2.2
 package io.jschneider.graphql.gremlin.grammar;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.ParserATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
-import org.antlr.v4.runtime.tree.ParseTreeVisitor;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
 import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class GraphQLParser extends Parser {
@@ -20,11 +17,11 @@ public class GraphQLParser extends Parser {
 	public static final int
 		T__16=1, T__15=2, T__14=3, T__13=4, T__12=5, T__11=6, T__10=7, T__9=8, 
 		T__8=9, T__7=10, T__6=11, T__5=12, T__4=13, T__3=14, T__2=15, T__1=16, 
-		T__0=17, NAME=18, STRING=19, BOOLEAN=20, NUMBER=21, WS=22;
+		T__0=17, BOOLEAN=18, NAME=19, STRING=20, NUMBER=21, WS=22;
 	public static final String[] tokenNames = {
 		"<INVALID>", "'mutation'", "'...'", "'fragment'", "':'", "'['", "'{'", 
 		"'on'", "']'", "'='", "'}'", "'@'", "'!'", "'$'", "'('", "')'", "','", 
-		"'query'", "NAME", "STRING", "BOOLEAN", "NUMBER", "WS"
+		"'query'", "BOOLEAN", "NAME", "STRING", "NUMBER", "WS"
 	};
 	public static final int
 		RULE_document = 0, RULE_definition = 1, RULE_operationDefinition = 2, 
@@ -1438,8 +1435,8 @@ public class GraphQLParser extends Parser {
 			setState(211);
 			switch (_input.LA(1)) {
 			case 5:
-			case STRING:
 			case BOOLEAN:
+			case STRING:
 			case NUMBER:
 				enterOuterAlt(_localctx, 1);
 				{
@@ -1908,7 +1905,7 @@ public class GraphQLParser extends Parser {
 		"\3\2\2\2,\u00d0\3\2\2\2.\u00d5\3\2\2\2\60\u00db\3\2\2\2\62\u00e5\3\2\2"+
 		"\2\64\u00e7\3\2\2\2\66\u00e9\3\2\2\28\u00ed\3\2\2\2:\u00fc\3\2\2\2<>\5"+
 		"\4\3\2=<\3\2\2\2>?\3\2\2\2?=\3\2\2\2?@\3\2\2\2@\3\3\2\2\2AD\5\6\4\2BD"+
-		"\5\34\17\2CA\3\2\2\2CB\3\2\2\2D\5\3\2\2\2EQ\5\b\5\2FG\5\n\6\2GI\7\24\2"+
+		"\5\34\17\2CA\3\2\2\2CB\3\2\2\2D\5\3\2\2\2EQ\5\b\5\2FG\5\n\6\2GI\7\25\2"+
 		"\2HJ\5&\24\2IH\3\2\2\2IJ\3\2\2\2JL\3\2\2\2KM\5 \21\2LK\3\2\2\2LM\3\2\2"+
 		"\2MN\3\2\2\2NO\5\b\5\2OQ\3\2\2\2PE\3\2\2\2PF\3\2\2\2Q\7\3\2\2\2RS\7\b"+
 		"\2\2SZ\5\f\7\2TV\7\22\2\2UT\3\2\2\2UV\3\2\2\2VW\3\2\2\2WY\5\f\7\2XU\3"+
@@ -1918,12 +1915,12 @@ public class GraphQLParser extends Parser {
 		"hi\3\2\2\2ik\3\2\2\2jl\5 \21\2kj\3\2\2\2kl\3\2\2\2lw\3\2\2\2mo\5\20\t"+
 		"\2np\5\24\13\2on\3\2\2\2op\3\2\2\2pr\3\2\2\2qs\5 \21\2rq\3\2\2\2rs\3\2"+
 		"\2\2st\3\2\2\2tu\5\b\5\2uw\3\2\2\2vf\3\2\2\2vm\3\2\2\2w\17\3\2\2\2x{\5"+
-		"\22\n\2y{\7\24\2\2zx\3\2\2\2zy\3\2\2\2{\21\3\2\2\2|}\7\24\2\2}~\7\6\2"+
-		"\2~\177\7\24\2\2\177\23\3\2\2\2\u0080\u0081\7\20\2\2\u0081\u0086\5\26"+
+		"\22\n\2y{\7\25\2\2zx\3\2\2\2zy\3\2\2\2{\21\3\2\2\2|}\7\25\2\2}~\7\6\2"+
+		"\2~\177\7\25\2\2\177\23\3\2\2\2\u0080\u0081\7\20\2\2\u0081\u0086\5\26"+
 		"\f\2\u0082\u0083\7\22\2\2\u0083\u0085\5\26\f\2\u0084\u0082\3\2\2\2\u0085"+
 		"\u0088\3\2\2\2\u0086\u0084\3\2\2\2\u0086\u0087\3\2\2\2\u0087\u0089\3\2"+
 		"\2\2\u0088\u0086\3\2\2\2\u0089\u008a\7\21\2\2\u008a\25\3\2\2\2\u008b\u008c"+
-		"\7\24\2\2\u008c\u008d\7\6\2\2\u008d\u008e\5.\30\2\u008e\27\3\2\2\2\u008f"+
+		"\7\25\2\2\u008c\u008d\7\6\2\2\u008d\u008e\5.\30\2\u008e\27\3\2\2\2\u008f"+
 		"\u0090\7\4\2\2\u0090\u0092\5\36\20\2\u0091\u0093\5 \21\2\u0092\u0091\3"+
 		"\2\2\2\u0092\u0093\3\2\2\2\u0093\31\3\2\2\2\u0094\u0095\7\4\2\2\u0095"+
 		"\u0096\7\t\2\2\u0096\u0098\5$\23\2\u0097\u0099\5 \21\2\u0098\u0097\3\2"+
@@ -1931,11 +1928,11 @@ public class GraphQLParser extends Parser {
 		"\33\3\2\2\2\u009c\u009d\7\5\2\2\u009d\u009e\5\36\20\2\u009e\u009f\7\t"+
 		"\2\2\u009f\u00a1\5$\23\2\u00a0\u00a2\5 \21\2\u00a1\u00a0\3\2\2\2\u00a1"+
 		"\u00a2\3\2\2\2\u00a2\u00a3\3\2\2\2\u00a3\u00a4\5\b\5\2\u00a4\35\3\2\2"+
-		"\2\u00a5\u00a6\7\24\2\2\u00a6\37\3\2\2\2\u00a7\u00a9\5\"\22\2\u00a8\u00a7"+
+		"\2\u00a5\u00a6\7\25\2\2\u00a6\37\3\2\2\2\u00a7\u00a9\5\"\22\2\u00a8\u00a7"+
 		"\3\2\2\2\u00a9\u00aa\3\2\2\2\u00aa\u00a8\3\2\2\2\u00aa\u00ab\3\2\2\2\u00ab"+
-		"!\3\2\2\2\u00ac\u00ad\7\r\2\2\u00ad\u00ae\7\24\2\2\u00ae\u00af\7\6\2\2"+
-		"\u00af\u00b9\5.\30\2\u00b0\u00b1\7\r\2\2\u00b1\u00b9\7\24\2\2\u00b2\u00b3"+
-		"\7\r\2\2\u00b3\u00b4\7\24\2\2\u00b4\u00b5\7\20\2\2\u00b5\u00b6\5\26\f"+
+		"!\3\2\2\2\u00ac\u00ad\7\r\2\2\u00ad\u00ae\7\25\2\2\u00ae\u00af\7\6\2\2"+
+		"\u00af\u00b9\5.\30\2\u00b0\u00b1\7\r\2\2\u00b1\u00b9\7\25\2\2\u00b2\u00b3"+
+		"\7\r\2\2\u00b3\u00b4\7\25\2\2\u00b4\u00b5\7\20\2\2\u00b5\u00b6\5\26\f"+
 		"\2\u00b6\u00b7\7\21\2\2\u00b7\u00b9\3\2\2\2\u00b8\u00ac\3\2\2\2\u00b8"+
 		"\u00b0\3\2\2\2\u00b8\u00b2\3\2\2\2\u00b9#\3\2\2\2\u00ba\u00bb\5\64\33"+
 		"\2\u00bb%\3\2\2\2\u00bc\u00bd\7\20\2\2\u00bd\u00c2\5(\25\2\u00be\u00bf"+
@@ -1944,15 +1941,15 @@ public class GraphQLParser extends Parser {
 		"\3\2\2\2\u00c5\u00c6\7\21\2\2\u00c6\'\3\2\2\2\u00c7\u00c8\5*\26\2\u00c8"+
 		"\u00c9\7\6\2\2\u00c9\u00cb\5\62\32\2\u00ca\u00cc\5,\27\2\u00cb\u00ca\3"+
 		"\2\2\2\u00cb\u00cc\3\2\2\2\u00cc)\3\2\2\2\u00cd\u00ce\7\17\2\2\u00ce\u00cf"+
-		"\7\24\2\2\u00cf+\3\2\2\2\u00d0\u00d1\7\13\2\2\u00d1\u00d2\5\60\31\2\u00d2"+
+		"\7\25\2\2\u00cf+\3\2\2\2\u00d0\u00d1\7\13\2\2\u00d1\u00d2\5\60\31\2\u00d2"+
 		"-\3\2\2\2\u00d3\u00d6\5\60\31\2\u00d4\u00d6\5*\26\2\u00d5\u00d3\3\2\2"+
-		"\2\u00d5\u00d4\3\2\2\2\u00d6/\3\2\2\2\u00d7\u00dc\7\25\2\2\u00d8\u00dc"+
-		"\7\27\2\2\u00d9\u00dc\7\26\2\2\u00da\u00dc\5:\36\2\u00db\u00d7\3\2\2\2"+
+		"\2\u00d5\u00d4\3\2\2\2\u00d6/\3\2\2\2\u00d7\u00dc\7\26\2\2\u00d8\u00dc"+
+		"\7\27\2\2\u00d9\u00dc\7\24\2\2\u00da\u00dc\5:\36\2\u00db\u00d7\3\2\2\2"+
 		"\u00db\u00d8\3\2\2\2\u00db\u00d9\3\2\2\2\u00db\u00da\3\2\2\2\u00dc\61"+
 		"\3\2\2\2\u00dd\u00df\5\64\33\2\u00de\u00e0\58\35\2\u00df\u00de\3\2\2\2"+
 		"\u00df\u00e0\3\2\2\2\u00e0\u00e6\3\2\2\2\u00e1\u00e3\5\66\34\2\u00e2\u00e4"+
 		"\58\35\2\u00e3\u00e2\3\2\2\2\u00e3\u00e4\3\2\2\2\u00e4\u00e6\3\2\2\2\u00e5"+
-		"\u00dd\3\2\2\2\u00e5\u00e1\3\2\2\2\u00e6\63\3\2\2\2\u00e7\u00e8\7\24\2"+
+		"\u00dd\3\2\2\2\u00e5\u00e1\3\2\2\2\u00e6\63\3\2\2\2\u00e7\u00e8\7\25\2"+
 		"\2\u00e8\65\3\2\2\2\u00e9\u00ea\7\7\2\2\u00ea\u00eb\5\62\32\2\u00eb\u00ec"+
 		"\7\n\2\2\u00ec\67\3\2\2\2\u00ed\u00ee\7\16\2\2\u00ee9\3\2\2\2\u00ef\u00f0"+
 		"\7\7\2\2\u00f0\u00f5\5\60\31\2\u00f1\u00f2\7\22\2\2\u00f2\u00f4\5\60\31"+

@@ -135,10 +135,10 @@ valueOrVariable
     ;
 
 value
-    :   STRING # stringValue
-    |   NUMBER # numberValue
-    |   BOOLEAN # booleanValue
-    |   array # arrayValue
+    :   STRING      # stringValue
+    |   NUMBER      # numberValue
+    |   BOOLEAN     # booleanValue
+    |   array       # arrayValue
     ;
 
 type
@@ -163,9 +163,9 @@ array
     |   '[' ']' // empty array
     ;
 
+BOOLEAN : 'true' | 'false' ;
 NAME : [_A-Za-z][_0-9A-Za-z]* ;
 STRING :  '"' (ESC | ~["\\])* '"' ;
-BOOLEAN : 'true' | 'false' ;
 fragment ESC :   '\\' (["\\/bfnrt] | UNICODE) ;
 fragment UNICODE : 'u' HEX HEX HEX HEX ;
 fragment HEX : [0-9a-fA-F] ;

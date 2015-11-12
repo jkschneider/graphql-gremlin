@@ -123,6 +123,22 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         asNames.add(relationName);
     }
 
+    private Object value(GraphQLParser.ValueContext valueContext) {
+        String val = valueContext.getText().replaceAll("\"", "");
+        if (valueContext instanceof GraphQLParser.StringValueContext)
+            return val;
+        if (valueContext instanceof GraphQLParser.BooleanValueContext)
+            return Boolean.parseBoolean(val);
+        if (valueContext instanceof GraphQLParser.NumberValueContext) {
+            if (val.contains("."))
+                return Double.parseDouble(val);
+            else
+                return Integer.parseInt(val);
+        }
+        return null;
+        // FIXME deal with ArrayValueContext
+    }
+
     private GraphQLValueOrVariable valueOrVariable(GraphQLParser.ArgumentContext ctx) {
         if(ctx == null)
             return null;
@@ -130,20 +146,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         String key = ctx.NAME().getText();
 
         if(ctx.valueOrVariable().value() != null) {
-            GraphQLParser.ValueContext valueContext = ctx.valueOrVariable().value();
-            String val = valueContext.getText().replaceAll("\"", "");
-            if (valueContext instanceof GraphQLParser.StringValueContext)
-                return new GraphQLValue(key, val);
-            if (valueContext instanceof GraphQLParser.BooleanValueContext)
-                return new GraphQLValue(key, Boolean.parseBoolean(val));
-            if (valueContext instanceof GraphQLParser.NumberValueContext) {
-                if (val.contains("."))
-                    return new GraphQLValue(key, Double.parseDouble(val));
-                else
-                    return new GraphQLValue(key, Integer.parseInt(val));
-            }
-            return null;
-            // FIXME deal with ArrayValueContext
+            return new GraphQLValue(key, value(ctx.valueOrVariable().value()));
         }
         else {
             return new GraphQLVariable(key, ctx.valueOrVariable().variable().NAME().getText(), variableResolver);
@@ -158,7 +161,7 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     @Override
     public void enterVariableDefinition(@NotNull GraphQLParser.VariableDefinitionContext ctx) {
         if(ctx.defaultValue() != null)
-            variableResolver.defaultValue(ctx.variable().NAME().getText(), ctx.defaultValue().value().getText());
+            variableResolver.defaultValue(ctx.variable().NAME().getText(), value(ctx.defaultValue().value()));
     }
 
     @Override
@@ -242,7 +245,10 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
             for (GraphQLParser.DirectiveContext directiveContext : ctx.directive()) {
                 String directiveName = directiveContext.NAME().getText();
                 if("skip".equals(directiveName)) {
-                    directiveAware.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument())));
+                    directiveAware.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument()), false));
+                }
+                else if("include".equals(directiveName)) {
+                    directiveAware.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument()), true));
                 }
             }
         }
