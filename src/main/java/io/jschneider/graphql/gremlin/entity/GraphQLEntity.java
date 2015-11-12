@@ -1,4 +1,6 @@
-package io.jschneider.graphql.gremlin;
+package io.jschneider.graphql.gremlin.entity;
+
+import io.jschneider.graphql.gremlin.GraphQLField;
 
 import java.util.ArrayList;
 import java.util.List;

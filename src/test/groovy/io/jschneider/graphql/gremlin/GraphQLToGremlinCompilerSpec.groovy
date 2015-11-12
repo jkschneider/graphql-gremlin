@@ -1,5 +1,9 @@
 package io.jschneider.graphql.gremlin
 
+import io.jschneider.graphql.gremlin.entity.GraphQLEntitySelectStep
+import io.jschneider.graphql.gremlin.entity.GraphQLRelationEntity
+import io.jschneider.graphql.gremlin.variable.MapVariableResolver
+import io.jschneider.graphql.gremlin.variable.VariableResolver
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__
 import org.apache.tinkerpop.gremlin.structure.Graph
@@ -8,6 +12,7 @@ import spock.lang.Specification
 
 class GraphQLToGremlinCompilerSpec extends Specification {
     static Graph g
+    static VariableResolver resolver = new MapVariableResolver([:])
 
     def setupSpec() {
         GraphTraversal.metaClass.entitySelect << { Map<String, String> fieldMappings,
@@ -24,7 +29,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'match a vertex based on a property'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             {
               person(name: "marko") {
                 name,
@@ -53,7 +58,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'match a relationship based on an in-vertex property'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             {
               person(name: "marko") {
                 name,
@@ -95,7 +100,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'nested properties with the same name'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             {
               person(name: "marko") {
                 name,
@@ -137,7 +142,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'match a relationship based on an edge property'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             {
               person(name: "marko") {
                 name,
@@ -154,7 +159,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'aliased fields'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             {
               person(name: "marko") {
                 nameAlias: name,
@@ -169,7 +174,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'query with no fragments'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             query noFragments {
               person(name: "marko") {
                 name,
@@ -184,7 +189,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'mutation is not supported'() {
         when:
-        GraphQLToGremlinCompiler.convertToGremlinTraversal(g, 'mutation { }')
+        GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, 'mutation { }')
 
         then:
         thrown(UnsupportedOperationException)
@@ -192,7 +197,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'query with fragments'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             query withFragments {
               person(name: "marko") {
                 ...personFields
@@ -211,7 +216,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'query with nested fragments'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
             query withFragments {
               person(name: "marko") {
                 ...personFields
@@ -234,7 +239,7 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
     def 'query with inline fragments'() {
         when:
-        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, """{
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """{
           person(name: "marko") {
             ... on Person {
               name,
@@ -245,5 +250,31 @@ class GraphQLToGremlinCompilerSpec extends Specification {
 
         then:
         actual.next() == [person: [name: 'marko', age: 29]]
+    }
+
+    def 'query with variable input'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, new MapVariableResolver([name: 'marko']), """{
+          person(name: \$name) {
+              age
+          }
+        }""")
+
+        then:
+        actual.next() == [person: [age: 29]]
+    }
+
+    def 'query with variable input with default value'() {
+        when:
+        def actual = GraphQLToGremlinCompiler.convertToGremlinTraversal(g, resolver, """
+          query findMarko (\$name: String = marko) {
+              person(name: \$name) {
+                  age
+              }
+          }
+        """)
+
+        then:
+        actual.next() == [person: [age: 29]]
     }
 }

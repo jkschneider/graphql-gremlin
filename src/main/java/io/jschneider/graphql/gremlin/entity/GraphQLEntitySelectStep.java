@@ -1,5 +1,6 @@
-package io.jschneider.graphql.gremlin;
+package io.jschneider.graphql.gremlin.entity;
 
+import io.jschneider.graphql.gremlin.GraphQLField;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.PathProcessor;

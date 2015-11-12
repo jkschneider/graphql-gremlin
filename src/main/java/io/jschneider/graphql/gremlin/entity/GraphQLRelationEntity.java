@@ -1,12 +1,12 @@
-package io.jschneider.graphql.gremlin;
+package io.jschneider.graphql.gremlin.entity;
 
+import io.jschneider.graphql.gremlin.GraphQLField;
+import io.jschneider.graphql.gremlin.variable.GraphQLValueOrVariable;
 import lombok.Data;
 import lombok.NonNull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Data
 public class GraphQLRelationEntity implements GraphQLEntity {
@@ -30,5 +30,5 @@ public class GraphQLRelationEntity implements GraphQLEntity {
     /**
      * May be empty, as in the case of the root document, which is a faux entity anyway
      */
-    Map<String, Object> whereClauses = new HashMap<>();
+    List<GraphQLValueOrVariable> whereClauses = new ArrayList<>();
 }

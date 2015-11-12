@@ -1,6 +1,6 @@
-package io.jschneider.graphql.gremlin;
-
-import spock.lang.Specification;
+package io.jschneider.graphql.gremlin.entity
+import io.jschneider.graphql.gremlin.GraphQLField
+import spock.lang.Specification
 
 class GraphQLEntitySpec extends Specification {
     def 'flatten fields through nested fragments'() {

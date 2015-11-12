@@ -3,8 +3,17 @@ package io.jschneider.graphql.gremlin;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.TreeMultiset;
+import io.jschneider.graphql.gremlin.directive.SkipDirective;
+import io.jschneider.graphql.gremlin.entity.GraphQLEntity;
+import io.jschneider.graphql.gremlin.entity.GraphQLEntitySelectStep;
+import io.jschneider.graphql.gremlin.entity.GraphQLFragmentEntity;
+import io.jschneider.graphql.gremlin.entity.GraphQLRelationEntity;
 import io.jschneider.graphql.gremlin.grammar.GraphQLBaseListener;
 import io.jschneider.graphql.gremlin.grammar.GraphQLParser;
+import io.jschneider.graphql.gremlin.variable.GraphQLValue;
+import io.jschneider.graphql.gremlin.variable.GraphQLValueOrVariable;
+import io.jschneider.graphql.gremlin.variable.GraphQLVariable;
+import io.jschneider.graphql.gremlin.variable.VariableResolver;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
@@ -17,18 +26,20 @@ import java.util.stream.Collectors;
 
 public class GraphQLCompilerListener extends GraphQLBaseListener {
     private GraphTraversal<Vertex, ?> traversal;
+    private VariableResolver variableResolver;
 
     /**
      * .as(R) names must have unique R across all fields and relations throughout the traversal
      */
-    Multiset<String> asNames = TreeMultiset.create();
+    private Multiset<String> asNames = TreeMultiset.create();
 
-    GraphQLRelationEntity queryEntity = new GraphQLRelationEntity("query", "query");
-    Stack<GraphQLEntity> entityStack = new Stack<>();
-    Map<String, GraphQLFragmentEntity> fragmentsByName = new HashMap<>();
+    private GraphQLRelationEntity queryEntity = new GraphQLRelationEntity("query", "query");
+    private Stack<GraphQLEntity> entityStack = new Stack<>();
+    private Map<String, GraphQLFragmentEntity> fragmentsByName = new HashMap<>();
 
-    public GraphQLCompilerListener(GraphTraversal<Vertex, ?> traversal) {
+    public GraphQLCompilerListener(GraphTraversal<Vertex, ?> traversal, VariableResolver variableResolver) {
         this.traversal = traversal;
+        this.variableResolver = variableResolver;
     }
 
     public GraphTraversal<Vertex, ?> result() {
@@ -89,28 +100,38 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         GraphQLEntity parentEntity = entityStack.peek();
         parentEntity.getChildEntities().add(entity);
 
-        for (GraphQLParser.ArgumentContext arg : ctx.arguments().argument()) {
-            entity.getWhereClauses().put(arg.NAME().getText(), extractValue(arg.valueOrVariable().value()));
-        }
+        for (GraphQLParser.ArgumentContext arg : ctx.arguments().argument())
+            entity.getWhereClauses().add(valueOrVariable(arg));
 
         entityStack.push(entity);
         asNames.add(relationName);
     }
 
-    private Object extractValue(GraphQLParser.ValueContext valueContext) {
-        String val = valueContext.getText().replaceAll("\"", "");
-        if(valueContext instanceof GraphQLParser.StringValueContext)
-            return val;
-        if(valueContext instanceof GraphQLParser.BooleanValueContext)
-            return Boolean.parseBoolean(val);
-        if(valueContext instanceof GraphQLParser.NumberValueContext) {
-            if(val.contains("."))
-                return Double.parseDouble(val);
-            else
-                return Integer.parseInt(val);
+    private GraphQLValueOrVariable valueOrVariable(GraphQLParser.ArgumentContext ctx) {
+        if(ctx == null)
+            return null;
+
+        String key = ctx.NAME().getText();
+
+        if(ctx.valueOrVariable().value() != null) {
+            GraphQLParser.ValueContext valueContext = ctx.valueOrVariable().value();
+            String val = valueContext.getText().replaceAll("\"", "");
+            if (valueContext instanceof GraphQLParser.StringValueContext)
+                return new GraphQLValue(key, val);
+            if (valueContext instanceof GraphQLParser.BooleanValueContext)
+                return new GraphQLValue(key, Boolean.parseBoolean(val));
+            if (valueContext instanceof GraphQLParser.NumberValueContext) {
+                if (val.contains("."))
+                    return new GraphQLValue(key, Double.parseDouble(val));
+                else
+                    return new GraphQLValue(key, Integer.parseInt(val));
+            }
+            return null;
+            // FIXME deal with ArrayValueContext
         }
-        return null;
-        // FIXME deal with ArrayValueContext
+        else {
+            return new GraphQLVariable(key, ctx.valueOrVariable().variable().NAME().getText(), variableResolver);
+        }
     }
 
     @Override
@@ -119,9 +140,14 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
     }
 
     @Override
+    public void enterVariableDefinition(@NotNull GraphQLParser.VariableDefinitionContext ctx) {
+        if(ctx.defaultValue() != null)
+            variableResolver.defaultValue(ctx.variable().NAME().getText(), ctx.defaultValue().value().getText());
+    }
+
+    @Override
     public void enterFieldValue(@NotNull GraphQLParser.FieldValueContext ctx) {
         GraphQLParser.FieldNameContext fieldNameContext = ctx.fieldName();
-
         String fieldName = fieldNameContext.getText();
         String queryAlias = null;
 
@@ -134,7 +160,18 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         String fieldAlias = fieldName + asNames.count(fieldName);
         asNames.add(fieldName);
 
-        entityStack.peek().getFields().add(new GraphQLField(fieldName, fieldAlias, queryAlias));
+        GraphQLField field = new GraphQLField(fieldName, fieldAlias, queryAlias);
+
+        if(ctx.directives() != null) {
+            for (GraphQLParser.DirectiveContext directiveContext : ctx.directives().directive()) {
+                String directiveName = directiveContext.NAME().getText();
+                if("skip".equals(directiveName)) {
+                    field.getDirectives().add(new SkipDirective(valueOrVariable(directiveContext.argument())));
+                }
+            }
+        }
+
+        entityStack.peek().getFields().add(field);
     }
 
     @Override
@@ -184,9 +221,9 @@ public class GraphQLCompilerListener extends GraphQLBaseListener {
         return whereClause.as(entity.getPrivateRelationAlias());
     }
 
-    private <T> GraphTraversal<?, T> buildHasChain(GraphQLRelationEntity entity, GraphTraversal<?, T> whereClause) {
-        for (Map.Entry<String, Object> whereHas : entity.getWhereClauses().entrySet()) {
-            whereClause = whereClause.has(whereHas.getKey(), whereHas.getValue());
+    private <E> GraphTraversal<?, E> buildHasChain(GraphQLRelationEntity entity, GraphTraversal<?, E> whereClause) {
+        for (GraphQLValueOrVariable valueOrVariable : entity.getWhereClauses()) {
+            whereClause = whereClause.has(valueOrVariable.getKey(), valueOrVariable.getValue());
         }
         return whereClause;
     }

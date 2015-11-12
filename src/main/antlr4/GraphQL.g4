@@ -62,7 +62,7 @@ selection
     ;
 
 field
-    :   fieldName arguments?                             # fieldValue
+    :   fieldName arguments? directives?                 # fieldValue
     |   fieldName arguments? directives? selectionSet    # fieldRelation
     ;
 

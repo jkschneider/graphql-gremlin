@@ -1,14 +1,18 @@
 package io.jschneider.graphql.gremlin;
 
-import lombok.AllArgsConstructor;
+import io.jschneider.graphql.gremlin.directive.GraphQLDirective;
 import lombok.Data;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
+import java.util.ArrayList;
+import java.util.List;
+
+@RequiredArgsConstructor
 @Data
 public class GraphQLField {
-    @NonNull String fieldName;
-    @NonNull String fieldAlias;
+    final @NonNull String fieldName;
+    final @NonNull String fieldAlias;
 
     /**
      * An alias specified in the query itself, e.g.:
@@ -20,5 +24,7 @@ public class GraphQLField {
      *
      * name is the alias, fullName is the fieldName, fullName0 is the fieldAlias for the traversal
      */
-    String queryAlias;
+    final String queryAlias;
+
+    List<GraphQLDirective> directives = new ArrayList<GraphQLDirective>();
 }
