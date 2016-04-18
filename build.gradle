@@ -9,12 +9,17 @@ buildscript {
 
     dependencies {
         classpath 'me.champeau.gradle:antlr4-gradle-plugin:0.1'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:latest.release'
+        classpath 'com.netflix.nebula:nebula-release-plugin:4.+'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'groovy' // for tests
 apply plugin: 'me.champeau.gradle.antlr4'
+apply plugin: 'nebula.nebula-release'
+
+group = 'io.jschneider'
 
 repositories {
     jcenter()
@@ -37,4 +42,28 @@ dependencies {
 // add antlr4 to classpath
 configurations {
     compile.extendsFrom antlr4
+}
+
+tasks.release.finalizedBy tasks.build
+
+bintray {
+    user = 'jkschneider'
+    key = bintrayApiKey
+    dryRun = false
+    publish = true
+
+    pkg {
+        repo = 'jons-oss'
+        name = 'graphql-gremlin'
+        vcsUrl = 'git@github.com:jkschneider/graphql-gremlin.git'
+        websiteUrl = 'https://github.com/jkschneider/graphql-gremlin'
+        issueTrackerUrl = 'https://github.com/jkschneider/graphql-gremlin/issues'
+        licenses = ['Apache-2.0']
+        labels = ['graph', 'tinkerpop', 'graphql', 'data']
+        publicDownloadNumbers = true
+        version {
+            name = project.version
+            vcsTag = project.version
+        }
+    }
 }
