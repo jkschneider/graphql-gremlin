@@ -1,3 +1,8 @@
 language: java
 jdk:
-  - oraclejdk8
+- oraclejdk8
+env:
+  matrix:
+    secure: hCArlcXMsGWw1Fw4RLkbsWjpsxoyoBLNdQ8LnBcEgNbKeF/m2ermtYlKugfGtpHNyqQcw37MvskU6z0VOWdD1ZXucpnAXzD5qQTCz2+S0/5jhR2JqFQTHsQZwls9io2ovKWKLvSSK18M+iqKobP8041i20gjMvfDfwacsEwtQY3X9p/FHspw81HJxkUtIqdpWc3/1LExo4PCIowJj4L/Z+T6l9peWhtjbnuPYBHnGs1LENpGUIIqf+XvxZ/OnvFUnXf3K8Zgv6QLNWm1+6Zhj95IzOl3TirqI/jW/j5QH35NJi6jTO36cfpHiHsJO2Ng43OQUcYnxf07mdfo2bLkGspUg5xrR/Y0LWzHZgR/7x1R77ngi5t2LVgBfE/Vl6xyegh4dpyk0JX0KDoduqQb6Igm5oKiV2Nt2ECLJAkwoJiSqgV+4QS6I3Z1ABvKU5PNENMxTjZ+e6OPMrJJLu2lQtciQEdBGGfbHQNQ7g3dRBDLtiDeAxUDyD5rTU1SBemxRbmLiI9S2+WrsZrscsw+QWc/FQDqYAVQA2brld9YptJSJXcgaNeO67WHVF57pqLvTM85gR6bSIO/mAJTfjvfW8gjRVJtlc3jAV/kRRreM5NMD7trkL8MDyFrAB8eSHpPgu+lbAUQmTJc/k5l4qZFXJurMPRawKc+UFIGEid94Bw=
+install: ./installViaTravis.sh
+script: ./buildViaTravis.sh

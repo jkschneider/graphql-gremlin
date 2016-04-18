@@ -45,11 +45,11 @@ configurations {
     compile.extendsFrom antlr4
 }
 
-tasks.release.finalizedBy tasks.build
+tasks.release.dependsOn tasks.build
 
 bintray {
     user = 'jkschneider'
-    key = bintrayApiKey
+    key = System.getenv('BINTRAY_KEY')
     dryRun = false
     publish = true
 
