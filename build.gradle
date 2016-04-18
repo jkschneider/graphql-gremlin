@@ -19,6 +19,7 @@ apply plugin: 'groovy' // for tests
 apply plugin: 'me.champeau.gradle.antlr4'
 apply plugin: 'nebula.nebula-release'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
 
 group = 'io.jschneider'
 
@@ -45,16 +46,23 @@ configurations {
     compile.extendsFrom antlr4
 }
 
-tasks.release.dependsOn tasks.build
+publishing {
+    publications {
+        Bintray(MavenPublication) {
+            from components.java
+        }
+    }
+}
 
 bintray {
     user = 'jkschneider'
     key = System.getenv('BINTRAY_KEY')
     dryRun = false
     publish = true
+    publications = ['Bintray']
 
     pkg {
-        repo = 'jons-oss'
+        repo = 'maven'
         name = 'graphql-gremlin'
         vcsUrl = 'git@github.com:jkschneider/graphql-gremlin.git'
         websiteUrl = 'https://github.com/jkschneider/graphql-gremlin'
